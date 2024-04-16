@@ -1,5 +1,3 @@
-scipy==1.10.1
-gensim
 Babel
 matplotlib
 numpy
@@ -16,3 +14,4 @@ tensorflow
 scikit-learn
 nltk
 joblib
+pickle
