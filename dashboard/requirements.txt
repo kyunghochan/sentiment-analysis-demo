@@ -13,4 +13,4 @@ tensorflow
 scikit-learn
 nltk
 joblib
-pickle
+pickle5
