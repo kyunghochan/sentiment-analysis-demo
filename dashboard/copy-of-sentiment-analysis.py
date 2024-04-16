@@ -1,23 +1,14 @@
 # Libraries
 import streamlit as st
 from joblib import load
-from transformers import get_linear_schedule_with_warmup
 from transformers import BertForSequenceClassification, AdamW, BertConfig
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
-from keras.preprocessing.sequence import pad_sequences
 from transformers import BertTokenizer
 import torch
 import pickle
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.ensemble import BaggingClassifier
-from sklearn.svm import SVC
-from sklearn.metrics import matthews_corrcoef
-from gensim.models import Word2Vec
 from sklearn.metrics import classification_report
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.pipeline import Pipeline
 import warnings
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
@@ -28,11 +19,6 @@ from random import sample
 import time
 import datetime
 from collections import Counter
-import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-nltk.download('stopwords')
-nltk.download('punkt')
 # WordCloud
 warnings.filterwarnings("ignore")
 
