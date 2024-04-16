@@ -7,6 +7,7 @@ from torch.utils.data import TensorDataset, DataLoader, RandomSampler, Sequentia
 from keras.preprocessing.sequence import pad_sequences
 from transformers import BertTokenizer
 import torch
+import pickle
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.ensemble import BaggingClassifier
 from sklearn.svm import SVC
@@ -38,7 +39,7 @@ warnings.filterwarnings("ignore")
 st.title('Hasil Analisis Sentimen Aksi Demokrasi di Indonesia pada Komentar Media Sosial YouTube')
 ################# Model Testing Sentiment Result #################
 df_merged = pd.read_csv(
-    "https://raw.githubusercontent.com/faizahmp/sentiment-analysis/main/data/df_merged.csv")
+    "https://raw.githubusercontent.com/kyunghochan/sentiment-analysis-demo/main/data/df_merged.csv")
 
 st.header('Hasil Sentimen dengan Model')
 labels = ['Negatif', 'Positif']
@@ -126,7 +127,7 @@ st.pyplot(fig)
 ##### SVM #######
 # feature extraction  / Tokenization (Word2Vec)
 df_merged_1 = pd.read_csv(
-    'https://raw.githubusercontent.com/faizahmp/sentiment-analysis/main/data/df_merged_cut.csv')
+    'https://raw.githubusercontent.com/kyunghochan/sentiment-analysis-demo/main/data/df_merged_cut.csv')
 load_model = load('model/svm_model.joblib')
 X_train, X_test, y_train, y_test = train_test_split(
     df_merged_1['text'], df_merged_1['sentiment'], test_size=0.2, random_state=42)
@@ -147,106 +148,76 @@ nb_precision = precision_score(y_test, y_pred_nb)
 nb_recall = recall_score(y_test, y_pred_nb)
 
 ##### INDOBERT #######
-# if torch.cuda.is_available():
-#     device = torch.device('cuda')
-#     print('there are %d GPU(s) available.' % torch.cuda.device_count())
-#     print('we will use the GPU: ', torch.cuda.get_device_name(0))
-# else:
-#     print("No GPU available, using the CPU instead")
-#     device = torch.device("cpu")
+if torch.cuda.is_available():
+    device = torch.device('cuda')
+    print('there are %d GPU(s) available.' % torch.cuda.device_count())
+    print('we will use the GPU: ', torch.cuda.get_device_name(0))
+else:
+    print("No GPU available, using the CPU instead")
+    device = torch.device("cpu")
 
-# model = BertForSequenceClassification.from_pretrained("indolem/indobert-base-uncased",
-#                                                       num_labels=2,
-#                                                       output_attentions=False,
-#                                                       output_hidden_states=False)
-# tokenizer = BertTokenizer.from_pretrained(
-#     'indolem/indobert-base-uncased', do_lower_case=True)
 
-# model.load_state_dict(torch.load(
-#     'indobert_model_sentiment.pth', map_location=torch.device('cpu')))
-# model.eval()
+def load_tokenized_data(filename):
+    with open(filename, 'rb') as f:
+        input_ids, attention_mask, labels = pickle.load(f)
+    return input_ids, attention_mask, labels
 
-# df_merged = df_merged.drop(columns=['original_text'])
-# df_merged = df_merged.rename(columns={'sentiment': 'label'})
-# df_merged.head()
 
-# text = df_merged['text'].values
-# labels = df_merged['label'].values
+test_input, test_mask, test_labels = load_tokenized_data(
+    'data/tokenized_test_data.pkl')
+batch_size = 32
+test_data = TensorDataset(torch.tensor(test_input), torch.tensor(
+    test_mask), torch.tensor(test_labels))
+test_sampler = SequentialSampler(test_data)
+test_dataloader = DataLoader(
+    test_data, sampler=test_sampler, batch_size=batch_size)
 
-# input_ids = []
+model = BertForSequenceClassification.from_pretrained("indobenchmark/indobert-base-p1",
+                                                      num_labels=2,
+                                                      output_attentions=False,
+                                                      output_hidden_states=False)
 
-# for sentence in text:
-#     encoded_sentences = tokenizer.encode(sentence, add_special_tokens=True)
-#     input_ids.append(encoded_sentences)
+model.load_state_dict(torch.load('data/indobert_model_sentiment_v4.pth'))
 
-# max_len = 64
-# input_ids = pad_sequences(input_ids, maxlen=max_len,
-#                           dtype='long', value=0, truncating='post', padding='post')
 
-# attention_mask = []
+def evaluate_model(model, dataloader, device):
+    predictions, true_labels = [], []
 
-# for sentence in input_ids:
-#     att_mask = [int(token_id > 0) for token_id in sentence]
-#     attention_mask.append(att_mask)
+    for batch in dataloader:
+        batch = tuple(t.to(device) for t in batch)
+        b_input_ids, b_input_mask, b_labels = batch
 
-# train_input, test_input, train_labels, test_labels = train_test_split(input_ids,
-#                                                                       labels,
-#                                                                       random_state=2017,
-#                                                                       test_size=0.2)
-# train_mask, test_mask, _, _ = train_test_split(attention_mask,
-#                                                labels,
-#                                                random_state=2017,
-#                                                test_size=0.2)
+        with torch.no_grad():
+            outputs = model(b_input_ids,
+                            token_type_ids=None,
+                            attention_mask=b_input_mask)
 
-# train_input, validation_input, train_labels, validation_labels = train_test_split(train_input,
-#                                                                                   train_labels,
-#                                                                                   random_state=2018,
-#                                                                                   test_size=0.15)
-# train_mask, validation_mask, _, _ = train_test_split(train_mask,
-#                                                      train_mask,
-#                                                      random_state=2018,
-#                                                      test_size=0.15)
+        logits = outputs[0]
+        logits = logits.detach().cpu().numpy()
+        label_ids = b_labels.to('cpu').numpy()
 
-# test_input = torch.tensor(test_input)
-# test_labels = torch.tensor(test_labels)
-# test_mask = torch.tensor(test_mask)
+        predictions.append(logits)
+        true_labels.append(label_ids)
 
-# test_data = TensorDataset(test_input, test_mask, test_labels)
-# test_sampler = SequentialSampler(test_data)
-# test_dataloader = DataLoader(test_data, sampler=test_sampler, batch_size=32)
+    flat_predictions = np.concatenate(predictions, axis=0)
+    flat_predictions = np.argmax(flat_predictions, axis=1).flatten()
 
-# predictions = []
-# true_labels = []
+    flat_true_labels = np.concatenate(true_labels, axis=0)
 
-# for batch in test_dataloader:
-#     # batch = tuple(t.to(device) for t in batch)
-#     b_input_ids, b_input_mask, b_labels = batch
+    accuracy = accuracy_score(flat_true_labels, flat_predictions)
+    precision = precision_score(flat_true_labels, flat_predictions)
+    recall = recall_score(flat_true_labels, flat_predictions)
 
-#     with torch.no_grad():
-#         outputs = model(b_input_ids,
-#                         token_type_ids=None,
-#                         attention_mask=b_input_mask)
+    return accuracy, precision, recall
 
-#     logits = outputs[0]
 
-#     logits = logits.detach().cpu().numpy()
-#     label_ids = b_labels.to('cpu').numpy()
+model.to(device)
+idbert_acc, idbert_precision, idbert_recall = evaluate_model(
+    model, test_dataloader, device)
 
-#     predictions.append(logits)
-#     true_labels.append(label_ids)
-
-# flat_predictions = [item for sublist in predictions for item in sublist]
-# flat_predictions = np.argmax(flat_predictions, axis=1).flatten()
-
-# flat_true_labels = [item for sublist in true_labels for item in sublist]
-
-# idbert_acc = accuracy_score(flat_true_labels, flat_prediction)
-# idbert_precision = precision_score(flat_true_labels, flat_prediction)
-# idbert_recall = recall_score(flat_true_labels, flat_prediction)
-
-idbert_acc = 0.6882984159427695
-idbert_precision = 0.6743295019157088
-idbert_recall = 0.4444444444444444
+# idbert_acc = 0.6882984159427695
+# idbert_precision = 0.6743295019157088
+# idbert_recall = 0.4444444444444444
 
 ################# Performance Comparison #################
 # set the data
