@@ -8,7 +8,6 @@ seaborn
 streamlit
 torch
 transformers
-keras
 sastrawi
 tensorflow
 scikit-learn
