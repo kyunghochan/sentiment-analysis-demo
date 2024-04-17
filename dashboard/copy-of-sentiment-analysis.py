@@ -138,71 +138,71 @@ nb_precision = precision_score(y_test, y_pred_nb)
 nb_recall = recall_score(y_test, y_pred_nb)
 
 ##### INDOBERT #######
-device = torch.device("cpu")
+# device = torch.device("cpu")
 
 
-def load_tokenized_data(filename):
-    with open(filename, 'rb') as f:
-        input_ids, attention_mask, labels = pickle.load(f)
-    return input_ids, attention_mask, labels
+# def load_tokenized_data(filename):
+#     with open(filename, 'rb') as f:
+#         input_ids, attention_mask, labels = pickle.load(f)
+#     return input_ids, attention_mask, labels
 
 
-test_input, test_mask, test_labels = load_tokenized_data(
-    'data/tokenized_test_data.pkl')
-batch_size = 32
-test_data = TensorDataset(torch.tensor(test_input), torch.tensor(
-    test_mask), torch.tensor(test_labels))
-test_sampler = SequentialSampler(test_data)
-test_dataloader = DataLoader(
-    test_data, sampler=test_sampler, batch_size=batch_size)
+# test_input, test_mask, test_labels = load_tokenized_data(
+#     'data/tokenized_test_data.pkl')
+# batch_size = 32
+# test_data = TensorDataset(torch.tensor(test_input), torch.tensor(
+#     test_mask), torch.tensor(test_labels))
+# test_sampler = SequentialSampler(test_data)
+# test_dataloader = DataLoader(
+#     test_data, sampler=test_sampler, batch_size=batch_size)
 
-model = BertForSequenceClassification.from_pretrained("indobenchmark/indobert-base-p1",
-                                                      num_labels=2,
-                                                      output_attentions=False,
-                                                      output_hidden_states=False)
+# model = BertForSequenceClassification.from_pretrained("indobenchmark/indobert-base-p1",
+#                                                       num_labels=2,
+#                                                       output_attentions=False,
+#                                                       output_hidden_states=False)
 
-model.load_state_dict(torch.load(
-    'model/indobert_model_sentiment_v4.pth', map_location=device))
-
-
-def evaluate_model(model, dataloader, device):
-    predictions, true_labels = [], []
-
-    for batch in dataloader:
-        batch = tuple(t.to(device) for t in batch)
-        b_input_ids, b_input_mask, b_labels = batch
-
-        with torch.no_grad():
-            outputs = model(b_input_ids,
-                            token_type_ids=None,
-                            attention_mask=b_input_mask)
-
-        logits = outputs[0]
-        logits = logits.detach().cpu().numpy()
-        label_ids = b_labels.to('cpu').numpy()
-
-        predictions.append(logits)
-        true_labels.append(label_ids)
-
-    flat_predictions = np.concatenate(predictions, axis=0)
-    flat_predictions = np.argmax(flat_predictions, axis=1).flatten()
-
-    flat_true_labels = np.concatenate(true_labels, axis=0)
-
-    accuracy = accuracy_score(flat_true_labels, flat_predictions)
-    precision = precision_score(flat_true_labels, flat_predictions)
-    recall = recall_score(flat_true_labels, flat_predictions)
-
-    return accuracy, precision, recall
+# model.load_state_dict(torch.load(
+#     'model/indobert_model_sentiment_v4.pth', map_location=device))
 
 
-model.to(device)
-idbert_acc, idbert_precision, idbert_recall = evaluate_model(
-    model, test_dataloader, device)
+# def evaluate_model(model, dataloader, device):
+#     predictions, true_labels = [], []
 
-# idbert_acc = 0.6882984159427695
-# idbert_precision = 0.6743295019157088
-# idbert_recall = 0.4444444444444444
+#     for batch in dataloader:
+#         batch = tuple(t.to(device) for t in batch)
+#         b_input_ids, b_input_mask, b_labels = batch
+
+#         with torch.no_grad():
+#             outputs = model(b_input_ids,
+#                             token_type_ids=None,
+#                             attention_mask=b_input_mask)
+
+#         logits = outputs[0]
+#         logits = logits.detach().cpu().numpy()
+#         label_ids = b_labels.to('cpu').numpy()
+
+#         predictions.append(logits)
+#         true_labels.append(label_ids)
+
+#     flat_predictions = np.concatenate(predictions, axis=0)
+#     flat_predictions = np.argmax(flat_predictions, axis=1).flatten()
+
+#     flat_true_labels = np.concatenate(true_labels, axis=0)
+
+#     accuracy = accuracy_score(flat_true_labels, flat_predictions)
+#     precision = precision_score(flat_true_labels, flat_predictions)
+#     recall = recall_score(flat_true_labels, flat_predictions)
+
+#     return accuracy, precision, recall
+
+
+# model.to(device)
+# idbert_acc, idbert_precision, idbert_recall = evaluate_model(
+#     model, test_dataloader, device)
+
+idbert_acc = 0.6866295264623955
+idbert_precision = 0.7097625329815304
+idbert_recall = 0.7005208333333334
 
 ################# Performance Comparison #################
 # set the data
