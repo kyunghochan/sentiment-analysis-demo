@@ -138,13 +138,7 @@ nb_precision = precision_score(y_test, y_pred_nb)
 nb_recall = recall_score(y_test, y_pred_nb)
 
 ##### INDOBERT #######
-if torch.cuda.is_available():
-    device = torch.device('cuda')
-    print('there are %d GPU(s) available.' % torch.cuda.device_count())
-    print('we will use the GPU: ', torch.cuda.get_device_name(0))
-else:
-    print("No GPU available, using the CPU instead")
-    device = torch.device("cpu")
+device = torch.device("cpu")
 
 
 def load_tokenized_data(filename):
