@@ -167,7 +167,7 @@ model = BertForSequenceClassification.from_pretrained("indobenchmark/indobert-ba
                                                       output_attentions=False,
                                                       output_hidden_states=False)
 
-model.load_state_dict(torch.load('data/indobert_model_sentiment_v4.pth'))
+model.load_state_dict(torch.load('model/indobert_model_sentiment_v4.pth'))
 
 
 def evaluate_model(model, dataloader, device):
