@@ -20,6 +20,7 @@ import time
 import datetime
 from collections import Counter
 import nltk
+from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 nltk.download('punkt')
 # WordCloud
