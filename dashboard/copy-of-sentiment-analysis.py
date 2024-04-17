@@ -19,6 +19,8 @@ from random import sample
 import time
 import datetime
 from collections import Counter
+from nltk.tokenize import word_tokenize
+nltk.download('punkt')
 # WordCloud
 warnings.filterwarnings("ignore")
 
